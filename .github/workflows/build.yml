@@ -1,0 +1,36 @@
+name: Build PicoKernel
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y nasm gcc-multilib qemu-system-i386
+
+    - name: Build PicoKernel
+      run: |
+        chmod +x build.sh
+        bash -c "cd $(pwd) && ./build.sh"
+
+    - name: Test kernel
+      run: |
+        qemu-system-i386 -fda build/picokernel.img -nographic -monitor none -serial none -parallel none -qmp tcp:localhost:4444,server,nowait &
+        sleep 5
+        kill $!
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: picokernel
+        path: build/
